@@ -7,7 +7,6 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Map;
 
-// Client Handler
 public class ServerHandler implements Runnable {
 
     private Socket clientSocket;
@@ -33,13 +32,7 @@ public class ServerHandler implements Runnable {
 
             if (tokens[0].equals("LOGIN")) {
                 napsterServer.registerPeer(userId, ipAddress, Integer.parseInt(portNumber));
-                Map<String, Peer> onlinePeerList = napsterServer.online_users();
-                String peers = getPeerList();
-                if (onlinePeerList != null) {
-                    output.println(peers);
-                } else {
-                    output.println("로그인을 해야합니다.");
-                }
+                output.println("사용자가 LOGIN 되었습니다.");
             } else if (tokens[0].equals("SEARCH")) {
                 Map<String, Peer> onlinePeerList = napsterServer.online_users();
                 String peers = getPeerList();
@@ -50,7 +43,7 @@ public class ServerHandler implements Runnable {
                 }
             } else if (tokens[0].equals("LOGOFF")) {
                 napsterServer.logoff(userId);
-                output.println("LOGOFF successfully.");
+                output.println("사용자가 LOGOFF 되었습니다.");
             }
             else {
                 output.println("Invalid request.");

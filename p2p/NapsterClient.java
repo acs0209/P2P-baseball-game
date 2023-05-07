@@ -21,8 +21,7 @@ public class NapsterClient {
     private static final String clientIpAddress = "217.1.1.1";
     private static final int clientPortNumber = 4000;
     private static ClientHandler clientHandler;
-    private static Thread thread;
-
+    private static boolean loginCheck = false;
     private static final String serverCombined = clientIpAddress + ":" + clientPortNumber;
     private static final String serverUserId = sha256(serverCombined);
 
@@ -30,7 +29,7 @@ public class NapsterClient {
 
         serverConnect("LOGIN", serverUserId, serverIpAddress, serverPortNumber);
         clientHandler = new ClientHandler(4000, new NapsterClient());
-        thread = new Thread(clientHandler);
+        Thread thread = new Thread(clientHandler);
         thread.start();
 
         while (true) {
@@ -50,6 +49,11 @@ public class NapsterClient {
                 userId = sha256(combined);
             }
 
+            if (loginCheck == false && !command.equals("login")) {
+                System.out.println("로그인을 하셔야 합니다.");
+                continue;
+            }
+
             if (command.equals("help")) {
                 help();
             } else if (command.equals("online_users")) {
@@ -62,7 +66,8 @@ public class NapsterClient {
                 guess(userId);
             } else if (command.equals("logoff")) {
                 logoff();
-                break;
+            } else if (command.equals("login")) {
+                login();
             } else {
                 System.out.println("Invalid request.");
             }
@@ -79,7 +84,6 @@ public class NapsterClient {
             output = new PrintWriter(clientSocket.getOutputStream(), true);
             output.println(command + " " + userId + " " + clientIpAddress + " " + clientPortNumber);
             String response = input.readLine();
-//            peerList = response;
             System.out.println(response);
         } catch (Exception e) {
             System.out.println("서버와 연결중 오류가 발생했습니다.");
@@ -91,6 +95,12 @@ public class NapsterClient {
             } catch (Exception e) {
                 System.out.println("서버와 연결중 오류가 발생했습니다.");
             }
+        }
+
+        if (command.equals("LOGIN")) {
+            loginCheck = true;
+        } else if (command.equals("LOGOFF")) {
+            loginCheck = false;
         }
     }
 
@@ -154,7 +164,7 @@ public class NapsterClient {
                 output.println(inputNum);
                 String response = input.readLine();
                 System.out.println(response);
-                if (response.equals("정답입니다.") || response.equals("-1")) {
+                if (response.equals("정답입니다.") || response.equals("게임을 종료합니다.")) {
                     break;
                 }
             }
@@ -171,17 +181,16 @@ public class NapsterClient {
         }
     }
 
-    public static void logoff() throws IOException {
+    public static void logoff() {
         for (String key : gamePeers.keySet()) {
             disconnect(key);
         }
-
-        clientHandler.stop();
-        thread.interrupt();
+        System.out.println("logoff 하셨습니다. 게임을 다시 하실려면 login을 하셔야 합니다.");
         serverConnect("LOGOFF", serverUserId, serverIpAddress, serverPortNumber);
-        if (clientSocket != null) {
-            clientSocket.close();
-        }
+    }
+    public static void login() {
+        System.out.println("login 하셨습니다.");
+        serverConnect("LOGIN", serverUserId, serverIpAddress, serverPortNumber);
     }
 
     private static String sha256(String str) {

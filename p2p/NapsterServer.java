@@ -6,7 +6,6 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 
-// Napster Server
 public class NapsterServer {
 
     private static Map<String, Peer> onlinePeerMap = new HashMap<>();

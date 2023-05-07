@@ -1,7 +1,6 @@
 package p2p;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
@@ -11,8 +10,6 @@ public class ClientHandler2 implements Runnable {
 
     private int portNumber;
     private NapsterClient2 napsterClient;
-    private boolean isRunning = true;
-    private ReceiveThread2 receiveThread;
 
     public ClientHandler2() {
 
@@ -29,13 +26,14 @@ public class ClientHandler2 implements Runnable {
         ServerSocket serverSocket = null;
         try {
             serverSocket = new ServerSocket(portNumber);
-            while (isRunning) {
+            while (true) {
 
                 clientSocket = serverSocket.accept();
 
                 // 다른 peer가 접속할때마다 새로운 스레드 생성
-                receiveThread = new ReceiveThread2(clientSocket, new ClientHandler2());
-                receiveThread.start();
+                ReceiveThread2 receiveThread = new ReceiveThread2(clientSocket, new ClientHandler2());
+                Thread t = new Thread(receiveThread);
+                t.start();
             }
         } catch (Exception e) {
             System.out.println("유저와의 연결에 오류가 발생했습니다.");
@@ -48,12 +46,6 @@ public class ClientHandler2 implements Runnable {
             }
         }
     }
-    public synchronized void stop() {
-        isRunning = false;
-        if (receiveThread != null) {
-            receiveThread.receiveThreadStop();
-        }
-    }
 }
 
 class ReceiveThread2 extends Thread {
@@ -61,7 +53,6 @@ class ReceiveThread2 extends Thread {
     private final String answer = "123";
     private Socket gameSocket;
     private ClientHandler2 clientHandler;
-    private volatile boolean isRunning2 = true;
 
     public ReceiveThread2 (Socket gameSocket, ClientHandler2 clientHandler) {
         this.gameSocket = gameSocket;
@@ -92,6 +83,8 @@ class ReceiveThread2 extends Thread {
                     System.out.println("상대방이 연결을 종료해 게임을 종료합니다.");
                     gameOutput.println("게임을 종료합니다.");
                     break;
+                } else {
+                    gameOutput.println("잘못된 입력입니다.");
                 }
             }
         } catch (Exception e) {
@@ -134,8 +127,5 @@ class ReceiveThread2 extends Thread {
         }
         String result = String.format("strike: %d, ball: %d", strike, ball);
         return result;
-    }
-    public synchronized void receiveThreadStop() {
-        isRunning2 = false;
     }
 }

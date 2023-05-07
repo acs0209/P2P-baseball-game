@@ -10,8 +10,6 @@ public class ClientHandler implements Runnable {
 
     private int portNumber;
     private NapsterClient napsterClient;
-    private volatile boolean isRunning = true;
-    private ReceiveThread receiveThread;
 
     public ClientHandler() {
 
@@ -29,14 +27,11 @@ public class ClientHandler implements Runnable {
         try {
             serverSocket = new ServerSocket(portNumber);
             while (true) {
-                if (!isRunning) {
-                    break;
-                }
 
                 clientSocket = serverSocket.accept();
 
                 // 다른 peer가 접속할때마다 새로운 스레드 생성
-                receiveThread = new ReceiveThread(clientSocket, new ClientHandler());
+                ReceiveThread receiveThread = new ReceiveThread(clientSocket, new ClientHandler());
                 Thread t = new Thread(receiveThread);
                 t.start();
             }
@@ -51,12 +46,6 @@ public class ClientHandler implements Runnable {
             }
         }
     }
-    public synchronized void stop() {
-        isRunning = false;
-        if (receiveThread != null) {
-            receiveThread.receiveThreadStop();
-        }
-    }
 }
 
 class ReceiveThread implements Runnable {
@@ -64,7 +53,6 @@ class ReceiveThread implements Runnable {
     private final String answer = "123";
     private Socket gameSocket;
     private ClientHandler clientHandler;
-    private volatile boolean isRunning2 = true;
 
     public ReceiveThread (Socket gameSocket, ClientHandler clientHandler) {
         this.gameSocket = gameSocket;
@@ -80,9 +68,6 @@ class ReceiveThread implements Runnable {
             gameOutput = new PrintWriter(gameSocket.getOutputStream(), true);
 
             while (true) {
-                if (!isRunning2) {
-                    break;
-                }
                 String request = gameInput.readLine();
                 String[] tokens = request.split(" ");
                 String command = tokens[0];
@@ -98,6 +83,8 @@ class ReceiveThread implements Runnable {
                     System.out.println("상대방이 연결을 종료해 게임을 종료합니다.");
                     gameOutput.println("게임을 종료합니다.");
                     break;
+                } else {
+                    gameOutput.println("잘못된 입력입니다.");
                 }
             }
         } catch (Exception e) {
@@ -140,9 +127,5 @@ class ReceiveThread implements Runnable {
         }
         String result = String.format("strike: %d, ball: %d", strike, ball);
         return result;
-    }
-
-    public synchronized void receiveThreadStop() {
-        isRunning2 = false;
     }
 }
