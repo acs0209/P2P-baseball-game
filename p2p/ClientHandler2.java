@@ -89,8 +89,8 @@ class ReceiveThread2 extends Thread {
                         break;
                     }
                 } else if (command.equals("disconnect")) {
-                    System.out.println("상대방이 연결을 종료해 스레드를 종료합니다.");
-                    gameOutput.println("-1");
+                    System.out.println("상대방이 연결을 종료해 게임을 종료합니다.");
+                    gameOutput.println("게임을 종료합니다.");
                     break;
                 }
             }
