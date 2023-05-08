@@ -1,5 +1,5 @@
 # P2P baseball game
-<img width="900px" alt="overview" src="https://user-images.githubusercontent.com/69111959/236689624-dfab058a-5e66-4082-a13a-597efb015dbf.png">
+<img width="700px" alt="overview" src="https://user-images.githubusercontent.com/69111959/236831383-b2e4ae1d-500a-459f-b1a4-b44b28c38a49.png">
 
 
 # 사용 기술 스택
