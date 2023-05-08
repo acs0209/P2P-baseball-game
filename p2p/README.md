@@ -6,6 +6,27 @@
 * Java11
 
 
+# 사용법
+### 배경
+* loginCheck 변수는 현재 peer가 로그인 상태인지 아닌지를 체크하는 변수입니다. login시 true logoff시 false가 됩니다. 
+* NapsterClient.java 와 NapsterClient2.java를 peer1, peer2라고 가정하겠습니다. 
+* 현재 테스트 환경에서는 로컬 컴퓨터 한대이므로 각 peer의 IP는 localhost라고 가정하겠습니다. 
+* peer1를 실행시키면 자동으로 login이 되어 서버에 peer1의 IP, Port번호가 저장이 됩니다. peer2도 실행시키면 마찬가지입니다.
+* connect localhost [port]를 통해 상대 peer와 연결을 할시 [port]에 본인의 [port]를 입력하지 않도록 주의하세요.
+* peer의 IP와 Port번호는 clientIpAddress, clientPortNumber 변수에 입력되어 있습니다.
+
+1. NapsterServer.java를 실행시킵니다. 그리고 peer1, peer2를 실행시킵니다.
+2. online_users를 입력하면 NapsterServer에 등록되어 있는 peer들의 정보가 IP: [IP] Port: [Port] userId: [userId] 형태로 출력이 됩니다. 
+3. 출력된 peer 정보들 중에서 통신하고 싶은 peer의 IP와 port번호를 선택해서 connect localhost [port] 를 입력하면 상대 peer와 연결이 됩니다. 예시는 connect localhost 5000입니다.
+4. 연결이 되면 상대방과 숫자야구게임을 시작하고 guess [userId] [your guessing number] 를 입력하면 됩니다. 예시는 guess a22b0a430249489cdc78515b258edf80b772f3fe8aa0179d9fe88d8345c7a6ec 312 입니다.
+5. guess [userId] [your guessing number] 를 통해 상대방과 게임을 진행하다가 정답을 맞추면 게임이 종료되고 상대방과의 연결이 끊깁니다. 다시 게임을 시작하실려면 connect localhost [port]를 입력하시면 됩니다.
+6. disconnect [peer] 입력시 상대방과의 연결이 끊깁니다. 예시는 disconnect a22b0a430249489cdc78515b258edf80b772f3fe8aa0179d9fe88d8345c7a6ec 입니다.
+7. logoff 를 입력하면 서버에 등록되어 있던 본인 peer의 IP와 Port번호가 삭제가 되고 loginCheck가 false가 되어 로그인 상태가 아닌걸로 설정됩니다.
+8. 다시 게임을 시작하기위해 login을 입력하면 loginCheck가 true가 되어 로그인 상태가 되고 서버에 본인의 IP와 Port번호가 저장이 됩니다.
+9. help 를 입력하면 위 명령어들에 대한 설명이 출력이 됩니다.
+10. 입력 예시.png에 입력 예시들을 볼 수 있습니다.
+
+
 # 프로젝트 구조
 ***
 * NapsterClient.java 
@@ -31,12 +52,11 @@
     따라서 각 피어에 할당된 소켓과 입출력 스트림을 구분하기위해 각 피어의 고유 해시값을 키로하여 gamePeers라는 Map 타입의 변수에 저장이 됩니다. 
     이때 SocketInfo 클래스에 해당 소켓과 입출력 스트림들이 저장이 되고 해당 SocketInfo 객체는 gamePeers 변수에 값으로 저장이 됩니다.
   * disconnect()
-    * 피어의 고유 해시값을 매개 변수 userId로 받아서 userId에 해당하는 peer와의 연결을 끊는 기능입니다.
+    * 피어의 고유 해시값을 매개 변수 userId로 받아서 userId에 해당하는 peer와의 연결을 끊고 게임이 종료되는 기능입니다.
     userId로 gamePeers 변수에 담겨있는 peer의 소켓정보들을 불러와서 SocketInfo 클래스의 close() 메소드를 사용하여 소켓과 해당 입출력 스트림을 닫습니다.
   * guess()
     * connect()메소드를 사용하여 연결했던 유저와 숫자 야구게임을 진행하는 기능입니다.
     예상번호를 입력하여 상대방에게 넘기고 상대방은 입력받은 값에 따른 출력값을 사용자에게 보냅니다.
-    정답이면 반복문이 중지되고 사용자와 상대방과의 연결이 끈기고 상대방과의 게임이 종료됩니다.
   * logoff()
     * 반복문을 사용하여 gamePeers에 저장되어 있는 연결된 사용자들의 socket 정보를 불러와서 연결되어 있던 사용자들과의 연결을 모두 끊습니다.
     그 후 LOGOFF를 입력값으로 하여 serverConnect() 메소드를 사용하여 서버에 저장되어 있는 사용자 본인의 ip와 port번호를 삭제합니다.
@@ -56,10 +76,10 @@
     * ClientHandler에서 생성한 스레드를 처리하기 위해 Runnable를 구현한 내부 클래스입니다.
     스레드가 실행될 때 수행되어야 하는 코드가 run() 메서드 안에 작성되어 있습니다.
     반복문 안에는 요청을 한 peer와 숫자 야구 게임을 진행하는 코드가 담겨있습니다. 
-    사용자가 입력한 값에 따라 결과값을 사용자에게 보내고 정답시 반복문이 중단되어 스레드가 종료되고 해당 소켓과 입출력 스트림들이 닫힙니다.
-    게임도중 disconnect 입력시 상대방과의 연결이 끊기고 게임이 종료가 됩니다.
+    사용자가 입력한 값에 baseballGame()메소드를 실행한 결과값을 사용자에게 보내고 입력값이 disconnect일시 상대방과의 연결이 끊기고 게임이 종료가 됩니다.
     * baseballGame()
       * 숫자야구를 구현한 메소드입니다. 상대방의 입력이 3개다 스트라이크일시 정답입니다. 가 출력이 되고 그 외는 스트라이크와 볼의 개수가 출력이 됩니다.
+      숫자가 아닌 값을 입력하거나 입력한 숫자가 4개 이상이면 잘못된 값을 입력했다고 사용자에게 전송합니다.
       synchronized를 적용하여 메소드에 동기화 처리를 하였습니다.
 
 ***
@@ -81,11 +101,12 @@
   스레드가 실행될 때 수행되어야 하는 코드가 run() 메서드 안에 작성되어 있습니다.
   peer가 서버에 입력한 값을 처리하는 클래스입니다. 
   입력한 값이 LOGIN이면 서버에서 사용자가 입력한 ip 와 port번호를 서버에 저장합니다.
-  입력한 값이 SEARCH이면 서버에서 사용자에게 서버에 등록된 모든 peer의 ip와 port번호를 전송합니다.
+  입력한 값이 SEARCH이면 서버에서 사용자에게 서버에 등록된 모든 peer의 ip, port번호, userId를 전송합니다.
   입력한 값이 LOGOFF이면 서버에서 저장되어 있는 해당 사용자의 ip와 port번호를 삭제합니다.  
   * getPeerList()
-    * 사용자에게 peer의 ip와 port번호를 보내주기위해 문자열에 해당 ip와 port번호들을 더해서 리턴해주는 메소드입니다.
-    synchronized를 적용하여 메소드에 동기화 처리를 하였습니다.
+    * 사용자에게 peer의 ip, port번호, userId를 보내주기위해 문자열에 해당 ip와 port번호, userId들을 더해서 리턴해주는 메소드입니다.
+      사용자 본인의 정보는 출력되지 않습니다.
+      synchronized를 적용하여 메소드에 동기화 처리를 하였습니다.
 
 ***
 * Peer.java

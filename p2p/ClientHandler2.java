@@ -50,7 +50,7 @@ public class ClientHandler2 implements Runnable {
 
 class ReceiveThread2 extends Thread {
 
-    private final String answer = "123";
+    private final String answer = "691";
     private Socket gameSocket;
     private ClientHandler2 clientHandler;
 
@@ -72,13 +72,10 @@ class ReceiveThread2 extends Thread {
                 String[] tokens = request.split(" ");
                 String command = tokens[0];
 
-                if (command.equals("guess") && tokens.length == 2) {
-                    String inputNum = tokens[1];
+                if (command.equals("guess") && tokens.length == 3) {
+                    String inputNum = tokens[2];
                     String result = baseballGame(inputNum);
                     gameOutput.println(result);
-                    if (result.equals("정답입니다.")) {
-                        break;
-                    }
                 } else if (command.equals("disconnect")) {
                     System.out.println("상대방이 연결을 종료해 게임을 종료합니다.");
                     gameOutput.println("게임을 종료합니다.");
@@ -107,6 +104,11 @@ class ReceiveThread2 extends Thread {
     }
 
     public synchronized String baseballGame(String guessNum) {
+
+        if (!isNumeric(guessNum) || guessNum.length() > 3) {
+            return "잘못된 입력값입니다.";
+        }
+
         int strike = 0;
         int ball = 0;
 
@@ -127,5 +129,9 @@ class ReceiveThread2 extends Thread {
         }
         String result = String.format("strike: %d, ball: %d", strike, ball);
         return result;
+    }
+
+    public boolean isNumeric(String str) {
+        return str.matches("-?\\d+(\\.\\d+)?");
     }
 }

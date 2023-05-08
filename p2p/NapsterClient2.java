@@ -15,12 +15,12 @@ public class NapsterClient2  {
 
     // 야구 게임을 하기위해 연결되어 있는 유저 목록
     private static Map<String, SocketInfo> gamePeers = new HashMap<>();
+    // 서버와 연결되는 소켓
     private static Socket clientSocket;
     private static final String serverIpAddress = "localhost";
     private static final int serverPortNumber = 9999;
-    private static final String clientIpAddress = "217.2.2.2";
+    private static final String clientIpAddress = "localhost";
     private static final int clientPortNumber = 5000;
-    private static ClientHandler2 clientHandler;
     private static boolean loginCheck = false;
     private static final String serverCombined = clientIpAddress + ":" + clientPortNumber;
     private static final String serverUserId = sha256(serverCombined);
@@ -28,7 +28,7 @@ public class NapsterClient2  {
     public static void main(String[] args) throws IOException {
 
         serverConnect("LOGIN", serverUserId, serverIpAddress, serverPortNumber);
-        clientHandler = new ClientHandler2(5000, new NapsterClient2());
+        ClientHandler2 clientHandler = new ClientHandler2(5000, new NapsterClient2());
         Thread thread = new Thread(clientHandler);
         thread.start();
 
@@ -38,16 +38,11 @@ public class NapsterClient2  {
             String input = br.readLine();
             String[] tokens = input.split(" ");
             String command = tokens[0];
+
             // 연결할 peer 의 ip 주소 와 port 번호
             String ipAddress = "";
-            String userId = "";
             int portNumber = 0;
-            if (tokens.length == 3) {
-                ipAddress = tokens[1];
-                portNumber = Integer.parseInt(tokens[2]);
-                String combined = ipAddress + ":" + portNumber;
-                userId = sha256(combined);
-            }
+            String userId = "";
 
             if (loginCheck == false && !command.equals("login")) {
                 System.out.println("로그인을 하셔야 합니다.");
@@ -58,12 +53,17 @@ public class NapsterClient2  {
                 help();
             } else if (command.equals("online_users")) {
                 online_users();
-            } else if (command.equals("connect")) {
+            } else if (command.equals("connect") && tokens.length == 3) {
+                ipAddress = tokens[1];
+                portNumber = Integer.parseInt(tokens[2]);
                 connect(ipAddress, portNumber);
-            } else if (command.equals("disconnect")) {
+            } else if (command.equals("disconnect") && tokens.length == 2) {
+                userId = tokens[1];
                 disconnect(userId);
-            } else if (command.equals("guess")) {
-                guess(userId);
+            } else if (command.equals("guess") && tokens.length == 3) {
+                userId = tokens[1];
+                String guessNumber = tokens[2];
+                guess(userId, guessNumber);
             } else if (command.equals("logoff")) {
                 logoff();
             } else if (command.equals("login")) {
@@ -108,10 +108,10 @@ public class NapsterClient2  {
         System.out.println("help: lookup command (display all possible commands and their description)");
         System.out.println("online_users: send a request to the register server, get back a list of all online peers and display them on the screen");
         System.out.println("connect [ip] [port]: request to play a game with the given IP and port");
-        System.out.println("disconnect [ip] [port]: end your game session with the given IP and port");
-        System.out.println("guess [ip] [port]: announce that you are starting a game with peer that you've already initiated a game with via the \"connect\" command ");
-        System.out.println("guess [your guessing number]: send a guessing number to the peer that you've already announced the start of the game with via the \"guess\" command ");
+        System.out.println("disconnect [peer] : end your game session with the listed peer");
+        System.out.println("guess [peer] [your guessing number] : send a guessing number to the peer that you've already initiated a game with via the \"connect\" command");
         System.out.println("logoff: send a message (notification) to register server for logging off");
+        System.out.println("login: send a message (notification) to register server for login on");
     }
 
     public static void online_users() {
@@ -120,15 +120,14 @@ public class NapsterClient2  {
 
     public static void connect(String ipAddress, int portNumber) {
         try {
+            System.out.println("요청하신 유저와의 숫자야구 게임을 시작합니다.");
             String combined = ipAddress + ":" + portNumber;
             String userId = sha256(combined);
-
             Socket gameSocket = new Socket(ipAddress, portNumber);
             BufferedReader gameInput = new BufferedReader(new InputStreamReader(gameSocket.getInputStream()));
             PrintWriter gameOutput = new PrintWriter(gameSocket.getOutputStream(), true);
             SocketInfo socketInfo = new SocketInfo(gameSocket, gameInput, gameOutput);
             gamePeers.put(userId, socketInfo);
-            System.out.println("다른 유저와 연결되었습니다.");
         } catch (Exception e) {
             System.out.println("유저와의 연결에 실패했습니다.");
         }
@@ -141,56 +140,38 @@ public class NapsterClient2  {
             PrintWriter output = socketInfo.getWriter();
             output.println("disconnect");
             socketInfo.close();
-            System.out.println("연결이 해제 되었습니다.");
+            System.out.println("게임이 종료됩니다.");
         } catch (Exception e) {
             System.out.println("연결 해재에 실패했습니다.");
         }
     }
 
-    public static void guess(String userId) {
+    public static void guess(String userId, String guessNumber) {
         SocketInfo socketInfo = gamePeers.get(userId);
         BufferedReader input = null;
         PrintWriter output = null;
         Socket gameSocket = null;
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try {
-            System.out.println("요청하신 유저와의 숫자야구 게임을 시작합니다.");
             gameSocket = socketInfo.getSocket();
             input = socketInfo.getReader();
             output = socketInfo.getWriter();
-            while (true) {
-                System.out.print("예상 번호를 입력하세요: ");
-                String inputNum = br.readLine();
-                output.println(inputNum);
-                String response = input.readLine();
-                System.out.println(response);
-                if (response.equals("정답입니다.") || response.equals("게임을 종료합니다.")) {
-                    break;
-                }
-            }
+            String guess = "guess" + " " + userId + " " + guessNumber;
+            output.println(guess);
+            String response = input.readLine();
+            System.out.println(response);
+
         } catch (Exception e) {
             System.out.println("게임 중 오류가 발생했습니다.");
-        } finally {
-            try {
-                input.close();
-                output.close();
-                gameSocket.close();
-            } catch (Exception e) {
-                System.out.println("게임 중 오류가 발생했습니다.");
-            }
         }
-
     }
 
     public static void logoff() {
         for (String key : gamePeers.keySet()) {
             disconnect(key);
         }
-        System.out.println("logoff 하셨습니다. 게임을 다시 하실려면 login을 하셔야 합니다.");
         serverConnect("LOGOFF", serverUserId, serverIpAddress, serverPortNumber);
     }
     public static void login() {
-        System.out.println("login 하셨습니다.");
         serverConnect("LOGIN", serverUserId, serverIpAddress, serverPortNumber);
     }
 
